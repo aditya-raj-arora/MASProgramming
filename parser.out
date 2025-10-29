@@ -1,0 +1,151 @@
+Created by PLY version 3.11 (http://www.dabeaz.com/ply)
+
+Unused terminals:
+
+    DATAFRAME
+    DEDENT
+    DO
+    INDENT
+    NEWLINE
+    PRINT
+
+Grammar
+
+Rule 0     S' -> program
+Rule 1     program -> stmt_list
+Rule 2     stmt_list -> stmt
+Rule 3     stmt_list -> stmt_list stmt
+Rule 4     stmt -> assign_stmt
+Rule 5     stmt -> func_def
+Rule 6     stmt -> if_stmt
+Rule 7     stmt -> loop_stmt
+Rule 8     stmt -> each_stmt
+Rule 9     stmt -> return_stmt
+Rule 10    stmt -> break_stmt
+Rule 11    stmt -> continue_stmt
+Rule 12    stmt -> expr_stmt
+Rule 13    assign_stmt -> ID ASSIGN expr
+Rule 14    expr -> binop_expr
+Rule 15    expr -> unary_expr
+Rule 16    expr -> primary
+Rule 17    binop_expr -> expr PLUS expr
+Rule 18    binop_expr -> expr MINUS expr
+Rule 19    binop_expr -> expr TIMES expr
+Rule 20    binop_expr -> expr DIVIDE expr
+Rule 21    binop_expr -> expr EQ expr
+Rule 22    binop_expr -> expr NEQ expr
+Rule 23    binop_expr -> expr LT expr
+Rule 24    binop_expr -> expr LE expr
+Rule 25    binop_expr -> expr GT expr
+Rule 26    binop_expr -> expr GE expr
+Rule 27    unary_expr -> MINUS expr
+Rule 28    primary -> NUMBER
+Rule 29    primary -> STRING
+Rule 30    primary -> TRUE
+Rule 31    primary -> FALSE
+Rule 32    primary -> NULL
+Rule 33    primary -> ID
+Rule 34    primary -> list_expr
+Rule 35    primary -> dict_expr
+Rule 36    primary -> LPAREN expr RPAREN
+Rule 37    primary -> call_expr
+Rule 38    list_expr -> LBRACKET RBRACKET
+Rule 39    list_expr -> LBRACKET expr_list RBRACKET
+Rule 40    dict_expr -> LBRACE RBRACE
+Rule 41    dict_expr -> LBRACE kv_list RBRACE
+Rule 42    kv_list -> expr COLON expr
+Rule 43    kv_list -> kv_list COMMA expr COLON expr
+Rule 44    expr_list -> expr
+Rule 45    expr_list -> expr_list COMMA expr
+Rule 46    call_expr -> ID LPAREN RPAREN
+Rule 47    call_expr -> ID LPAREN expr_list RPAREN
+Rule 48    expr_stmt -> call_expr
+Rule 49    return_stmt -> GIVE expr
+Rule 50    break_stmt -> STOP
+Rule 51    continue_stmt -> NEXT
+Rule 52    if_stmt -> IF expr COLON stmt_list
+Rule 53    if_stmt -> IF expr COLON stmt_list elif_blocks
+Rule 54    if_stmt -> IF expr COLON stmt_list else_block
+Rule 55    if_stmt -> IF expr COLON stmt_list elif_blocks else_block
+Rule 56    elif_blocks -> ELIF expr COLON stmt_list
+Rule 57    elif_blocks -> elif_blocks ELIF expr COLON stmt_list
+Rule 58    else_block -> ELSE COLON stmt_list
+Rule 59    loop_stmt -> LOOP expr COLON stmt_list
+Rule 60    each_stmt -> EACH ID IN expr COLON stmt_list
+Rule 61    func_def -> DEF ID LPAREN RPAREN COLON stmt_list
+Rule 62    func_def -> DEF ID LPAREN param_list RPAREN COLON stmt_list
+Rule 63    param_list -> ID
+Rule 64    param_list -> param_list COMMA ID
+
+Terminals, with rules where they appear
+
+ASSIGN               : 13
+COLON                : 42 43 52 53 54 55 56 57 58 59 60 61 62
+COMMA                : 43 45 64
+DATAFRAME            : 
+DEDENT               : 
+DEF                  : 61 62
+DIVIDE               : 20
+DO                   : 
+EACH                 : 60
+ELIF                 : 56 57
+ELSE                 : 58
+EQ                   : 21
+FALSE                : 31
+GE                   : 26
+GIVE                 : 49
+GT                   : 25
+ID                   : 13 33 46 47 60 61 62 63 64
+IF                   : 52 53 54 55
+INDENT               : 
+LBRACE               : 40 41
+LBRACKET             : 38 39
+LE                   : 24
+LOOP                 : 59
+LPAREN               : 36 46 47 61 62
+LT                   : 23
+MINUS                : 18 27
+NEQ                  : 22
+NEWLINE              : 
+NEXT                 : 51
+NULL                 : 32
+NUMBER               : 28
+PLUS                 : 17
+PRINT                : 
+RBRACE               : 40 41
+RBRACKET             : 38 39
+RPAREN               : 36 46 47 61 62
+STOP                 : 50
+STRING               : 29
+TIMES                : 19
+TRUE                 : 30
+error                : 
+
+Nonterminals, with rules where they appear
+
+IN                   : 60
+assign_stmt          : 4
+binop_expr           : 14
+break_stmt           : 10
+call_expr            : 37 48
+continue_stmt        : 11
+dict_expr            : 35
+each_stmt            : 8
+elif_blocks          : 53 55 57
+else_block           : 54 55
+expr                 : 13 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 36 42 42 43 43 44 45 49 52 53 54 55 56 57 59 60
+expr_list            : 39 45 47
+expr_stmt            : 12
+func_def             : 5
+if_stmt              : 6
+kv_list              : 41 43
+list_expr            : 34
+loop_stmt            : 7
+param_list           : 62 64
+primary              : 16
+program              : 0
+return_stmt          : 9
+stmt                 : 2 3
+stmt_list            : 1 3 52 53 54 55 56 57 58 59 60 61 62
+unary_expr           : 15
+
