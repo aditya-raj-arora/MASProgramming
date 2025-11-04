@@ -28,21 +28,17 @@ jobs:
         brew install make
 
     - name: Build with Make
+      working-directory: ./mas
       run: make
 
     - name: Test executable exists
+      working-directory: ./mas
       run: |
-        if [ "${{ runner.os }}" == "Windows" ]; then
-          if [ ! -f "mas.exe" ]; then
-            echo "Build failed: mas.exe not found"
-            exit 1
-          fi
-        else
-          if [ ! -f "mas.exe" ]; then
-            echo "Build failed: mas.exe not found"
-            exit 1
-          fi
+        if [ ! -f "mas.exe" ]; then
+          echo "Build failed: mas.exe not found"
+          exit 1
         fi
 
     - name: Clean build artifacts
+      working-directory: ./maw
       run: make clean
