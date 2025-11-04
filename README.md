@@ -45,7 +45,9 @@ each f in fruits:
     print "Fruit:", f
 end
 
-give x  # return value
+each i in 1 to 3:
+    print "Count:", i
+end
 ```
 
 **Output:**
@@ -59,6 +61,9 @@ Count: 2
 Fruit: apple
 Fruit: banana
 Fruit: cherry
+Count: 1
+Count: 2
+Count: 3
 ```
 
 ---

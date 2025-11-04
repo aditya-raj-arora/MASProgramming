@@ -15,7 +15,7 @@ typedef enum {
     TOK_LPAREN, TOK_RPAREN, TOK_LBRACKET, TOK_RBRACKET, TOK_LBRACE, TOK_RBRACE,
     TOK_COMMA, TOK_COLON, TOK_NEWLINE, TOK_END,
     // Keywords
-    KW_LOOP, KW_EACH, KW_IN, KW_STOP, KW_NEXT, KW_GIVE, KW_IF, KW_ELIF, KW_ELSE,
+    KW_LOOP, KW_EACH, KW_IN, KW_TO, KW_STOP, KW_NEXT, KW_GIVE, KW_IF, KW_ELIF, KW_ELSE,
     KW_DEF, KW_TRUE, KW_FALSE, KW_NULL, KW_PRINT,
     TOK_EOF, TOK_ERROR
 } TokenType;
@@ -73,7 +73,14 @@ struct ASTNode {
         struct { ASTNode** items; int count; } list;
         struct { char* name; ASTNode** args; int arg_count; } call;
         struct { ASTNode* condition; ASTNode** body; int body_count; } loop;
-        struct { char* target; ASTNode* iterable; ASTNode** body; int body_count; } each;
+        struct { 
+    char* target; 
+    ASTNode* iterable;      // for lists
+    ASTNode* range_start;   // for ranges (if not NULL)
+    ASTNode* range_end;     // for ranges
+    ASTNode** body; 
+    int body_count; 
+} each;
         struct { char* name; char** params; int param_count; ASTNode** body; int body_count; } funcdef;
         struct { ASTNode* condition; ASTNode** then_body; int then_body_count; ASTNode** else_body; int else_body_count; } if_stmt;
         ASTNode* expr;

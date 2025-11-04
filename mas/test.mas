@@ -21,3 +21,7 @@ end
 each f in fruits:
     print "Fruit:", f
 end
+
+each i in 1 to 3:
+    print "Count:", i
+end

@@ -152,10 +152,29 @@ ASTNode* parse_statement() {
         exit(1);
     }
     char* target = strdup(current_token->value);
-    advance(); // consume the identifier
+    advance(); // consume identifier
 
     consume(KW_IN, "Expected 'in'");
-    ASTNode* iterable = parse_expression();
+
+    // Check if it's a range: <expr> to <expr>
+    ASTNode* range_start = NULL;
+    ASTNode* range_end = NULL;
+    ASTNode* iterable = NULL;
+
+    // Peek ahead: if we see "to" after an expression, it's a range
+    // Parse the first expression
+    ASTNode* first = parse_expression();
+    
+    if (match(KW_TO)) {
+        // It's a range: first = start, parse end
+        advance(); // consume 'to'
+        range_start = first;
+        range_end = parse_expression();
+    } else {
+        // It's a normal iterable (list, etc.)
+        iterable = first;
+    }
+
     consume(TOK_COLON, "Expected ':'");
     consume(TOK_NEWLINE, "Expected newline after each header");
     
@@ -175,11 +194,14 @@ ASTNode* parse_statement() {
     each->type = AST_EACH;
     each->line = current_token->line;
     each->data.each.target = target;
-    each->data.each.iterable = iterable;
+    each->data.each.iterable = iterable;      // NULL for ranges
+    each->data.each.range_start = range_start; // NULL for iterables
+    each->data.each.range_end = range_end;
     each->data.each.body = body;
     each->data.each.body_count = body_count;
     return each;
-}else if (match(KW_IF)) {
+}
+else if (match(KW_IF)) {
     advance(); // consume 'if'
     ASTNode* condition = parse_expression();
     consume(TOK_COLON, "Expected ':'");

@@ -70,6 +70,7 @@ static Token* read_identifier() {
     if (strcmp(buffer, "loop") == 0) tok->type = KW_LOOP;
     else if (strcmp(buffer, "each") == 0) tok->type = KW_EACH;
     else if (strcmp(buffer, "in") == 0) tok->type = KW_IN;
+    else if (strcmp(buffer, "to") == 0) tok->type = KW_TO;
     else if (strcmp(buffer, "stop") == 0) tok->type = KW_STOP;
     else if (strcmp(buffer, "next") == 0) tok->type = KW_NEXT;
     else if (strcmp(buffer, "give") == 0) tok->type = KW_GIVE;
@@ -308,6 +309,7 @@ void print_tokens() {
             case KW_LOOP:   printf("KW_LOOP (line %d)\n", tok->line); break;
             case KW_EACH:   printf("KW_EACH (line %d)\n", tok->line); break;
             case KW_IN:     printf("KW_IN (line %d)\n", tok->line); break;
+            case KW_TO:     printf("KW_TO (line %d)\n", tok->line); break;
             case KW_STOP:   printf("KW_STOP (line %d)\n", tok->line); break;
             case KW_NEXT:   printf("KW_NEXT (line %d)\n", tok->line); break;
             case KW_GIVE:   printf("KW_GIVE (line %d)\n", tok->line); break;
