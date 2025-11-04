@@ -40,5 +40,5 @@ jobs:
         fi
 
     - name: Clean build artifacts
-      working-directory: ./maw
+      working-directory: ./mas
       run: make clean
