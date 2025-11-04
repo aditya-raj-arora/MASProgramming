@@ -8,19 +8,19 @@
 
 ## 🌟 Features
 
-- **Dynamic typing** with automatic type inference
-- **First-class lists** with literal syntax: `[1, 2, 3]`
-- **Control structures**: `if`, `loop`, `each` (for-each loop)
-- **Functions**: Built-in `print`, with user-defined functions (WIP)
-- **Expressions**: Arithmetic (`+`, `-`, `*`, `/`), comparisons (`==`, `!=`, `<`, etc.)
-- **Clean syntax**: No semicolons, indentation-like structure using `end`
-- **Memory management**: Reference counting for automatic cleanup
+- **Dynamic typing** with automatic type inference  
+- **First-class lists** with literal syntax: `[1, 2, 3]`  
+- **Control structures**: `if`, `loop`, `each` (for-each loop)  
+- **Functions**: Built-in `print`, with user-defined functions (WIP)  
+- **Expressions**: Arithmetic (`+`, `-`, `*`, `/`), comparisons (`==`, `!=`, `<`, etc.)  
+- **Clean syntax**: No semicolons, indentation-like structure using `end`  
+- **Memory management**: Reference counting for automatic cleanup  
 
 ---
 
 ## 🚀 Example Program
 
-```python
+```mas
 # Hello World
 print "Hello, MAS!"
 
@@ -75,14 +75,20 @@ Count: 3
 
 ---
 
-## 🛠️ Building & Running
+## ⬇️ Download & Releases
+
+Pre-built binaries for Linux, macOS, and Windows are available on **[GitHub Releases](https://github.com/aditya-raj-arora/MASProgramming/releases)**.  
+👉 **[Download the latest version](https://github.com/aditya-raj-arora/MASProgramming/releases/latest)**
+
+---
+
+## 🛠️ Building from Source
 
 ### Prerequisites
 - A C compiler (GCC or Clang)
-- Make 
+- Make
 
 ### Build
-
 ```bash
 git clone https://github.com/aditya-raj-arora/MASProgramming.git
 cd MASProgramming/mas
@@ -93,7 +99,6 @@ make
 ```bash
 ./mas your_program.mas
 ```
-
 > Replace `your_program.mas` with the path to your MAS source file.
 
 ---
@@ -143,15 +148,15 @@ end
 ```
 
 ### Data Types
-- **Number**: `42`, `3.14`
-- **String**: `"hello"` (supports `\n`, `\t`, `\"`)
-- **Boolean**: `true`, `false`
-- **Null**: `null`
+- **Number**: `42`, `3.14`  
+- **String**: `"hello"` (supports `\n`, `\t`, `\"`)  
+- **Boolean**: `true`, `false`  
+- **Null**: `null`  
 - **List**: `[1, "two", true]`
 
 ### Operators
-- Arithmetic: `+`, `-`, `*`, `/`
-- Comparison: `==`, `!=`, `<`, `<=`, `>`, `>=`
+- Arithmetic: `+`, `-`, `*`, `/`  
+- Comparison: `==`, `!=`, `<`, `<=`, `>`, `>=`  
 - Assignment: `=`
 
 ---
@@ -159,11 +164,9 @@ end
 ## 🧪 Testing
 
 A sample test file is included:
-
 ```bash
 ./mas test.mas
 ```
-
 This runs basic examples of variables, expressions, loops, and the `print` function.
 
 ---
@@ -171,11 +174,11 @@ This runs basic examples of variables, expressions, loops, and the `print` funct
 ## 📚 Learning Goals
 
 This project demonstrates core concepts in programming language implementation:
-- Lexical analysis (tokenization)
-- Recursive descent parsing
-- Abstract Syntax Trees (AST)
-- Tree-walking interpreters
-- Runtime object model and memory management
+- Lexical analysis (tokenization)  
+- Recursive descent parsing  
+- Abstract Syntax Trees (AST)  
+- Tree-walking interpreters  
+- Runtime object model and memory management  
 
 It's ideal for students, hobbyists, or anyone wanting to build their first language!
 
@@ -184,10 +187,10 @@ It's ideal for students, hobbyists, or anyone wanting to build their first langu
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to:
-- Fix bugs
-- Add new features (e.g., user-defined functions, more data types)
-- Improve error messages
-- Write more test cases
+- Fix bugs  
+- Add new features (e.g., user-defined functions, more data types)  
+- Improve error messages  
+- Write more test cases  
 
 Just open a pull request with your changes.
 
@@ -200,6 +203,8 @@ This project is open-source and available under the **MIT License**. See [LICENS
 ---
 
 > **Built with ❤️ for learners and creators.**  
-> — Aditya Raj Arora
-> — Mukta Motwani
+> — Aditya Raj Arora  
+> — Mukta Motwani  
 > — Shivam Saini
+
+---
