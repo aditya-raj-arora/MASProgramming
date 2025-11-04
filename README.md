@@ -79,13 +79,14 @@ Count: 3
 
 ### Prerequisites
 - A C compiler (GCC or Clang)
-- Make (optional)
+- Make 
 
 ### Build
+
 ```bash
 git clone https://github.com/aditya-raj-arora/MASProgramming.git
 cd MASProgramming/mas
-gcc -o mas main.c lexer.c parser.c interpreter.c -lm
+make
 ```
 
 ### Run a Program
@@ -106,6 +107,7 @@ mas/
 ├── parser.c        # Recursive descent parser (builds AST)
 ├── interpreter.c   # Tree-walking interpreter (executes AST)
 ├── main.c          # Entry point and driver
+├── Makefile        # Build script
 └── test.mas        # Example MAS program
 ```
 
