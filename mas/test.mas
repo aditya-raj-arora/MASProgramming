@@ -1,7 +1,23 @@
-x = 2
-if x > 5:
-    print "hello"
-    print "hello"
-else:
-    print "world"
+# Hello World
+print "Hello, MAS!"
+
+# Variables and math
+x = 10
+y = x * 2 + 5
+print "Result:", y
+
+# Lists
+fruits = ["apple", "banana", "cherry"]
+print fruits
+
+# Loop
+i = 0
+loop i < 3:
+    print "Count:", i
+    i = i + 1
+end
+
+# For-each loop
+each f in fruits:
+    print "Fruit:", f
 end

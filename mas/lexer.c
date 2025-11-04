@@ -83,7 +83,7 @@ static Token* read_identifier() {
     else if (strcmp(buffer, "print") == 0) tok->type = KW_PRINT;
     else if (strcmp(buffer, "end") == 0) tok->type = TOK_END;
     else tok->type = TOK_ID;
-    
+    // printf("LEXED IDENTIFIER: '%s' -> TOKEN %d\n", buffer, tok->type);
     return tok;
 }
 

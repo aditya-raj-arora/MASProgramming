@@ -71,7 +71,10 @@ ASTNode* parse_statement() {
     if (match(KW_DEF)) {
         // Function definition
         advance(); // consume 'def'
-        consume(TOK_ID, "Expected function name");
+        if (!match(TOK_ID)) {
+            fprintf(stderr, "Parse error at line %d: Expected function name\n", current_token->line);
+            exit(1);
+        }
         char* func_name = strdup(current_token->value);
         advance();
         consume(TOK_LPAREN, "Expected '('");
@@ -81,10 +84,13 @@ ASTNode* parse_statement() {
         
         if (!match(TOK_RPAREN)) {
             do {
-                consume(TOK_ID, "Expected parameter name");
-                params[param_count++] = strdup(current_token->value);
-                advance();
-            } while (match(TOK_COMMA));
+            if (!match(TOK_ID)) {
+                fprintf(stderr, "Parse error at line %d: Expected parameter name\n", current_token->line);
+                exit(1);
+            }
+            params[param_count++] = strdup(current_token->value);
+            advance();
+        } while (match(TOK_COMMA));
             consume(TOK_RPAREN, "Expected ')'");
         }
         
@@ -139,36 +145,41 @@ ASTNode* parse_statement() {
         return loop;
     }
     else if (match(KW_EACH)) {
-        advance(); // consume 'each'
-        consume(TOK_ID, "Expected variable name");
-        char* target = strdup(current_token->value);
-        advance();
-        consume(KW_IN, "Expected 'in'");
-        ASTNode* iterable = parse_expression();
-        consume(TOK_COLON, "Expected ':'");
-        consume(TOK_NEWLINE, "Expected newline after each header");
-        
-        int body_count = 0;
-        ASTNode** body = malloc(sizeof(ASTNode*) * 100);
-        while (current_token && current_token->type != TOK_END) {
-            if (current_token->type == TOK_NEWLINE) {
-                advance();
-                continue;
-            }
-            body[body_count++] = parse_statement();
-        }
-        consume(TOK_END, "Expected 'end' to close each");
-        
-        ASTNode* each = malloc(sizeof(ASTNode));
-        each->type = AST_EACH;
-        each->line = current_token->line;
-        each->data.each.target = target;
-        each->data.each.iterable = iterable;
-        each->data.each.body = body;
-        each->data.each.body_count = body_count;
-        return each;
+    advance(); // consume 'each'
+    
+    if (!match(TOK_ID)) {
+        fprintf(stderr, "Parse error at line %d: Expected variable name\n", current_token->line);
+        exit(1);
     }
-    else if (match(KW_IF)) {
+    char* target = strdup(current_token->value);
+    advance(); // consume the identifier
+
+    consume(KW_IN, "Expected 'in'");
+    ASTNode* iterable = parse_expression();
+    consume(TOK_COLON, "Expected ':'");
+    consume(TOK_NEWLINE, "Expected newline after each header");
+    
+    // Parse body
+    int body_count = 0;
+    ASTNode** body = malloc(sizeof(ASTNode*) * 100);
+    while (current_token && current_token->type != TOK_END) {
+        if (current_token->type == TOK_NEWLINE) {
+            advance();
+            continue;
+        }
+        body[body_count++] = parse_statement();
+    }
+    consume(TOK_END, "Expected 'end' to close each");
+    
+    ASTNode* each = malloc(sizeof(ASTNode));
+    each->type = AST_EACH;
+    each->line = current_token->line;
+    each->data.each.target = target;
+    each->data.each.iterable = iterable;
+    each->data.each.body = body;
+    each->data.each.body_count = body_count;
+    return each;
+}else if (match(KW_IF)) {
     advance(); // consume 'if'
     ASTNode* condition = parse_expression();
     consume(TOK_COLON, "Expected ':'");
