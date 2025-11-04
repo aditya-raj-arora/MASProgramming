@@ -23,7 +23,7 @@ static int next_char() {
 
 // Helper function to peek at next character
 static int peek_char() {
-    if (current && *current) {
+    if (current && *current != '\0') {
         return *current;
     }
     return EOF;
@@ -35,9 +35,16 @@ static void skip_whitespace() {
     while ((c = peek_char()) != EOF) {
         if (c == ' ' || c == '\t') {
             next_char();
+        } else if (c == '\r') {
+            // Skip \r (in case of \r\n or lone \r)
+            next_char();
+            // If followed by \n, we'll let lexer_next() handle the \n
         } else if (c == '#') {
-            // Comment
-            while ((c = next_char()) != EOF && c != '\n');
+            next_char(); // consume '#'
+            while ((c = peek_char()) != EOF && c != '\n' && c != '\r') {
+                next_char();
+            }
+            // Do NOT consume \n or \r — leave for lexer_next()
         } else {
             break;
         }
@@ -172,11 +179,6 @@ Token* lexer_next() {
     skip_whitespace();
     
     int c = peek_char();
-    if (c == EOF) {
-        eof_reached = true;
-        return make_token(TOK_EOF, NULL, line);
-    }
-    
     // Single character tokens
     if (c == '+') { next_char(); return make_token(TOK_PLUS, NULL, line); }
     if (c == '-') { next_char(); return make_token(TOK_MINUS, NULL, line); }
@@ -225,7 +227,8 @@ Token* lexer_next() {
     }
     if (c == '\n') {
         next_char();
-        return make_token(TOK_NEWLINE, NULL, line);
+        // The newline token belongs to the line we just finished.
+        return make_token(TOK_NEWLINE, NULL, line - 1);
     }
     
     // Multi-character tokens
@@ -239,9 +242,18 @@ Token* lexer_next() {
         return read_string();
     }
     
+    if (c == EOF) {
+        eof_reached = true;
+        return make_token(TOK_EOF, NULL, line);
+    }
+
     // Unknown character
     char msg[100];
-    sprintf(msg, "Unknown character: %c", c);
+    if (isprint(c)) {
+        sprintf(msg, "Unknown character: '%c'", c);
+    } else {
+        sprintf(msg, "Unknown character: '\\x%02X'", (unsigned char)c);
+    }
     next_char(); // consume it
     return make_token(TOK_ERROR, strdup(msg), line);
 }

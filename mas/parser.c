@@ -54,6 +54,11 @@ ASTNode* parse_program() {
             continue;
         }
         statements[stmt_count++] = parse_statement();
+
+        // After a statement, we must have a newline or EOF.
+        if (current_token->type != TOK_NEWLINE && current_token->type != TOK_EOF) {
+            consume(TOK_NEWLINE, "Expected newline after statement");
+        }
     }
     
     program->data.list.items = statements;
@@ -238,52 +243,15 @@ ASTNode* parse_statement() {
         stmt->line = call->line;
         stmt->data.expr = call;
         return stmt;
+    } else {
+        // If it's not a keyword-led statement, it must be an expression statement.
+        ASTNode* expr = parse_expression();
+        ASTNode* stmt = malloc(sizeof(ASTNode));
+        stmt->type = AST_EXPRSTMT;
+        stmt->line = expr->line;
+        stmt->data.expr = expr;
+        return stmt;
     }
-    else if (match(TOK_ID)) {
-        char* id = strdup(current_token->value);
-        advance();
-        if (match(TOK_ASSIGN)) { // Assignment
-            // Assignment
-            ASTNode* value = parse_expression();
-            ASTNode* assign = malloc(sizeof(ASTNode));
-            assign->type = AST_ASSIGN;
-            assign->line = current_token->line;
-            assign->data.assign.name = id;
-            assign->data.assign.value = value;
-            return assign;
-        }
-        else if (match(TOK_LPAREN)) { // Function call
-            // Function call
-            ASTNode** args = malloc(sizeof(ASTNode*) * 10);
-            int arg_count = 0;
-            
-            if (!match(TOK_RPAREN)) {
-                do {
-                    args[arg_count++] = parse_expression();
-                    if (match(TOK_COMMA)) {
-                        advance(); // consume comma
-                    } else break;
-                } while (true);
-                consume(TOK_RPAREN, "Expected ')'");
-            }
-            
-            ASTNode* call = malloc(sizeof(ASTNode));
-            call->type = AST_CALL;
-            call->line = current_token->line;
-            call->data.call.name = id;
-            call->data.call.args = args;
-            call->data.call.arg_count = arg_count;
-            return call;
-        }
-    }
-    
-    // Default: parse as expression statement
-    ASTNode* expr = parse_expression();
-    ASTNode* stmt = malloc(sizeof(ASTNode));
-    stmt->type = AST_EXPRSTMT;
-    stmt->line = current_token->line;
-    stmt->data.expr = expr;
-    return stmt;
 }
 
 // Parse expression (simplified - left associative)
@@ -292,7 +260,23 @@ ASTNode* parse_expression() {
 }
 
 ASTNode* parse_comparison() {
-    ASTNode* expr = parse_term();
+    ASTNode* expr = parse_term(); // Parse the left-hand side
+
+    // Check for assignment, which has the lowest precedence
+    if (match(TOK_ASSIGN)) {
+        advance(); // consume '='
+        if (expr->type != AST_VAR) {
+            fprintf(stderr, "Parse error at line %d: Invalid assignment target.\n", expr->line);
+            exit(1);
+        }
+        ASTNode* value = parse_expression();
+        ASTNode* assign = malloc(sizeof(ASTNode));
+        assign->type = AST_ASSIGN;
+        assign->line = expr->line;
+        assign->data.assign.name = expr->data.var_name;
+        assign->data.assign.value = value;
+        return assign;
+    }
     
     while (current_token) {
         if (match(TOK_EQ)) {
@@ -498,13 +482,36 @@ ASTNode* parse_primary() {
         return null_node;
     }
     else if (match(TOK_ID)) {
-        char* value = strdup(current_token->value);
+        char* id_name = strdup(current_token->value);
         int line = current_token->line;
         advance();
+
+        // Check if it's a function call
+        if (match(TOK_LPAREN)) {
+            advance(); // consume '('
+            ASTNode** args = malloc(sizeof(ASTNode*) * 10);
+            int arg_count = 0;
+            if (!match(TOK_RPAREN)) {
+                do {
+                    args[arg_count++] = parse_expression();
+                } while (match(TOK_COMMA) && (advance(), true));
+            }
+            consume(TOK_RPAREN, "Expected ')'");
+
+            ASTNode* call = malloc(sizeof(ASTNode));
+            call->type = AST_CALL;
+            call->line = line;
+            call->data.call.name = id_name;
+            call->data.call.args = args;
+            call->data.call.arg_count = arg_count;
+            return call;
+        }
+
+        // Otherwise, it's a variable
         ASTNode* var = malloc(sizeof(ASTNode));
         var->type = AST_VAR;
         var->line = line;
-        var->data.var_name = value;
+        var->data.var_name = id_name;
         return var;
     }
     else if (match(TOK_LBRACKET)) {

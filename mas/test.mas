@@ -1,1 +1,3 @@
-print "Idiots in the house"
+x = 4 - 5
+print "Sum is equal to ", x
+print "Sagnik is idiot"
