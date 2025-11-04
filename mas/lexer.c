@@ -4,6 +4,7 @@
 static char* current;
 static int line = 1;
 static FILE* file;
+static bool eof_reached = false;
 
 void lexer_init(FILE* f) {
     file = f;
@@ -11,7 +12,7 @@ void lexer_init(FILE* f) {
 }
 
 // Helper function to read next character
-static int next_char() {
+static int next_char() {    
     if (current && *current) {
         char c = *current++;
         if (c == '\n') line++;
@@ -143,6 +144,18 @@ static Token* read_string() {
     return tok;
 }
 
+static Token* make_token(TokenType type, char* value, int line_num) {
+    Token* tok = malloc(sizeof(Token));
+    if (!tok) {
+        perror("Failed to allocate token");
+        exit(1);
+    }
+    tok->type = type;
+    tok->value = value;
+    tok->line = line_num;
+    return tok;
+}
+
 // Main lexer function
 Token* lexer_next() {
     if (!current) {
@@ -160,66 +173,59 @@ Token* lexer_next() {
     
     int c = peek_char();
     if (c == EOF) {
-        Token* tok = malloc(sizeof(Token));
-        tok->type = TOK_EOF;
-        tok->value = NULL;
-        tok->line = line;
-        return tok;
+        eof_reached = true;
+        return make_token(TOK_EOF, NULL, line);
     }
     
     // Single character tokens
-    if (c == '+') { next_char(); return &(Token){TOK_PLUS, "+", line}; }
-    if (c == '-') { next_char(); return &(Token){TOK_MINUS, "-", line}; }
-    if (c == '*') { next_char(); return &(Token){TOK_TIMES, "*", line}; }
-    if (c == '/') { next_char(); return &(Token){TOK_DIVIDE, "/", line}; }
-    if (c == '(') { next_char(); return &(Token){TOK_LPAREN, "(", line}; }
-    if (c == ')') { next_char(); return &(Token){TOK_RPAREN, ")", line}; }
-    if (c == '[') { next_char(); return &(Token){TOK_LBRACKET, "[", line}; }
-    if (c == ']') { next_char(); return &(Token){TOK_RBRACKET, "]", line}; }
-    if (c == '{') { next_char(); return &(Token){TOK_LBRACE, "{", line}; }
-    if (c == '}') { next_char(); return &(Token){TOK_RBRACE, "}", line}; }
-    if (c == ',') { next_char(); return &(Token){TOK_COMMA, ",", line}; }
-    if (c == ':') { next_char(); return &(Token){TOK_COLON, ":", line}; }
+    if (c == '+') { next_char(); return make_token(TOK_PLUS, NULL, line); }
+    if (c == '-') { next_char(); return make_token(TOK_MINUS, NULL, line); }
+    if (c == '*') { next_char(); return make_token(TOK_TIMES, NULL, line); }
+    if (c == '/') { next_char(); return make_token(TOK_DIVIDE, NULL, line); }
+    if (c == '(') { next_char(); return make_token(TOK_LPAREN, NULL, line); }
+    if (c == ')') { next_char(); return make_token(TOK_RPAREN, NULL, line); }
+    if (c == '[') { next_char(); return make_token(TOK_LBRACKET, NULL, line); }
+    if (c == ']') { next_char(); return make_token(TOK_RBRACKET, NULL, line); }
+    if (c == '{') { next_char(); return make_token(TOK_LBRACE, NULL, line); }
+    if (c == '}') { next_char(); return make_token(TOK_RBRACE, NULL, line); }
+    if (c == ',') { next_char(); return make_token(TOK_COMMA, NULL, line); }
+    if (c == ':') { next_char(); return make_token(TOK_COLON, NULL, line); }
     if (c == '=') {
         next_char();
         if (peek_char() == '=') {
             next_char();
-            return &(Token){TOK_EQ, "==", line};
+            return make_token(TOK_EQ, NULL, line);
         }
-        return &(Token){TOK_ASSIGN, "=", line};
+        return make_token(TOK_ASSIGN, NULL, line);
     }
     if (c == '!') {
         next_char();
         if (peek_char() == '=') {
             next_char();
-            return &(Token){TOK_NEQ, "!=", line};
+            return make_token(TOK_NEQ, NULL, line);
         }
         // Error: unexpected '!'
-        Token* tok = malloc(sizeof(Token));
-        tok->type = TOK_ERROR;
-        tok->value = strdup("Unexpected '!'"); 
-        tok->line = line;
-        return tok;
+        return make_token(TOK_ERROR, strdup("Unexpected '!'"), line);
     }
     if (c == '<') {
         next_char();
         if (peek_char() == '=') {
             next_char();
-            return &(Token){TOK_LE, "<=", line};
+            return make_token(TOK_LE, NULL, line);
         }
-        return &(Token){TOK_LT, "<", line};
+        return make_token(TOK_LT, NULL, line);
     }
     if (c == '>') {
         next_char();
         if (peek_char() == '=') {
             next_char();
-            return &(Token){TOK_GE, ">=", line};
+            return make_token(TOK_GE, NULL, line);
         }
-        return &(Token){TOK_GT, ">", line};
+        return make_token(TOK_GT, NULL, line);
     }
     if (c == '\n') {
         next_char();
-        return &(Token){TOK_NEWLINE, "\n", line};
+        return make_token(TOK_NEWLINE, NULL, line);
     }
     
     // Multi-character tokens
@@ -234,12 +240,82 @@ Token* lexer_next() {
     }
     
     // Unknown character
-    Token* tok = malloc(sizeof(Token));
-    tok->type = TOK_ERROR;
     char msg[100];
     sprintf(msg, "Unknown character: %c", c);
-    tok->value = strdup(msg);
-    tok->line = line;
     next_char(); // consume it
-    return tok;
+    return make_token(TOK_ERROR, strdup(msg), line);
+}
+
+// Add this at the bottom of lexer.c (or anywhere after lexer_next is defined)
+void print_tokens() {
+    Token* tok;
+    do {
+        tok = lexer_next();
+        switch (tok->type) {
+            case TOK_EOF:
+                printf("EOF\n");
+                free(tok);
+                break;
+            case TOK_ERROR:
+                printf("ERROR (line %d): %s\n", tok->line, tok->value);
+                break;
+            case TOK_NUMBER:
+                printf("NUMBER (line %d): %s\n", tok->line, tok->value);
+                break;
+            case TOK_STRING:
+                printf("STRING (line %d): \"%s\"\n", tok->line, tok->value);
+                break;
+            case TOK_ID:
+                printf("IDENTIFIER (line %d): %s\n", tok->line, tok->value);
+                break;
+            case TOK_NEWLINE:
+                printf("NEWLINE (line %d)\n", tok->line);
+                break;
+            case TOK_PLUS:     printf("PLUS (line %d)\n", tok->line); break;
+            case TOK_MINUS:    printf("MINUS (line %d)\n", tok->line); break;
+            case TOK_TIMES:    printf("TIMES (line %d)\n", tok->line); break;
+            case TOK_DIVIDE:   printf("DIVIDE (line %d)\n", tok->line); break;
+            case TOK_ASSIGN:   printf("ASSIGN (line %d)\n", tok->line); break;
+            case TOK_EQ:       printf("EQ (line %d)\n", tok->line); break;
+            case TOK_NEQ:      printf("NEQ (line %d)\n", tok->line); break;
+            case TOK_LT:       printf("LT (line %d)\n", tok->line); break;
+            case TOK_LE:       printf("LE (line %d)\n", tok->line); break;
+            case TOK_GT:       printf("GT (line %d)\n", tok->line); break;
+            case TOK_GE:       printf("GE (line %d)\n", tok->line); break;
+            case TOK_LPAREN:   printf("LPAREN (line %d)\n", tok->line); break;
+            case TOK_RPAREN:   printf("RPAREN (line %d)\n", tok->line); break;
+            case TOK_LBRACKET: printf("LBRACKET (line %d)\n", tok->line); break;
+            case TOK_RBRACKET: printf("RBRACKET (line %d)\n", tok->line); break;
+            case TOK_LBRACE:   printf("LBRACE (line %d)\n", tok->line); break;
+            case TOK_RBRACE:   printf("RBRACE (line %d)\n", tok->line); break;
+            case TOK_COMMA:    printf("COMMA (line %d)\n", tok->line); break;
+            case TOK_COLON:    printf("COLON (line %d)\n", tok->line); break;
+            case TOK_END:      printf("END (line %d)\n", tok->line); break;
+
+            // Keywords
+            case KW_LOOP:   printf("KW_LOOP (line %d)\n", tok->line); break;
+            case KW_EACH:   printf("KW_EACH (line %d)\n", tok->line); break;
+            case KW_IN:     printf("KW_IN (line %d)\n", tok->line); break;
+            case KW_STOP:   printf("KW_STOP (line %d)\n", tok->line); break;
+            case KW_NEXT:   printf("KW_NEXT (line %d)\n", tok->line); break;
+            case KW_GIVE:   printf("KW_GIVE (line %d)\n", tok->line); break;
+            case KW_IF:     printf("KW_IF (line %d)\n", tok->line); break;
+            case KW_ELIF:   printf("KW_ELIF (line %d)\n", tok->line); break;
+            case KW_ELSE:   printf("KW_ELSE (line %d)\n", tok->line); break;
+            case KW_DEF:    printf("KW_DEF (line %d)\n", tok->line); break;
+            case KW_TRUE:   printf("KW_TRUE (line %d)\n", tok->line); break;
+            case KW_FALSE:  printf("KW_FALSE (line %d)\n", tok->line); break;
+            case KW_NULL:   printf("KW_NULL (line %d)\n", tok->line); break;
+            case KW_PRINT:  printf("KW_PRINT (line %d)\n", tok->line); break;
+
+            default:
+                printf("UNKNOWN TOKEN (line %d): %s\n", tok->line, tok->value ? tok->value : "(null)");
+                break;
+        }
+
+        // Free token memory if you're using malloc in lexer_next
+        if (tok->value) free(tok->value);
+        free(tok);
+
+    } while (tok->type != TOK_EOF);
 }

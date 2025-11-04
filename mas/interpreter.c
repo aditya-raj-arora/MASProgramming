@@ -137,6 +137,7 @@ static MASObject* create_list(MASObject** items, int count) {
 
 // Built-in functions
 static MASObject* builtin_print(Interpreter* interp, MASObject** args, int arg_count) {
+     (void)interp;
     for (int i = 0; i < arg_count; i++) {
         if (i > 0) printf(" ");
         MASObject* arg = args[i];

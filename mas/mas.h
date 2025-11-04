@@ -2,6 +2,7 @@
 #ifndef MAS_H
 #define MAS_H
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,7 +47,7 @@ struct MASObject {
         char* string;
         bool boolean;
         struct {
-            ASTNode** items;
+            MASObject** items;
             int count;
         } list;
         struct {
@@ -79,10 +80,12 @@ struct ASTNode {
 };
 
 // Function declarations
+void lexer_init(FILE* f);
 Token* lexer_next();
 ASTNode* parse_program();
 MASObject* interpret(ASTNode* ast);
 void mas_object_incref(MASObject* obj);
 void mas_object_decref(MASObject* obj);
+void print_ast(ASTNode* node, int indent);
 
 #endif
