@@ -355,23 +355,29 @@ static MASObject* evaluate(ASTNode* node, Interpreter* interp) {
             return create_null();
         }
         case AST_IF: {
-            MASObject* cond = evaluate(node->data.loop.condition, interp);
-            if (cond->type != AST_BOOLEAN) {
-                fprintf(stderr, "If condition must be boolean\n");
-                exit(1);
-            }
-            if (cond->data.boolean) {
-                mas_object_decref(cond);
-                // Execute if body
-                for (int i = 0; i < node->data.loop.body_count; i++) {
-                    MASObject* result = evaluate(node->data.loop.body[i], interp);
-                    mas_object_decref(result);
-                }
-            } else {
-                mas_object_decref(cond);
-            }
-            return create_null();
+    MASObject* cond = evaluate(node->data.if_stmt.condition, interp);
+    if (cond->type != AST_BOOLEAN) {
+        fprintf(stderr, "If condition must be boolean\n");
+        exit(1);
+    }
+    
+    if (cond->data.boolean) {
+        // Execute 'then' branch
+        for (int i = 0; i < node->data.if_stmt.then_body_count; i++) {
+            MASObject* result = evaluate(node->data.if_stmt.then_body[i], interp);
+            mas_object_decref(result);
         }
+    } else if (node->data.if_stmt.else_body) {
+        // Execute 'else' branch (only if it exists)
+        for (int i = 0; i < node->data.if_stmt.else_body_count; i++) {
+            MASObject* result = evaluate(node->data.if_stmt.else_body[i], interp);
+            mas_object_decref(result);
+        }
+    }
+    
+    mas_object_decref(cond);
+    return create_null();
+}
         case AST_EXPRSTMT: {
             MASObject* result = evaluate(node->data.expr, interp);
             mas_object_decref(result);

@@ -75,6 +75,7 @@ struct ASTNode {
         struct { ASTNode* condition; ASTNode** body; int body_count; } loop;
         struct { char* target; ASTNode* iterable; ASTNode** body; int body_count; } each;
         struct { char* name; char** params; int param_count; ASTNode** body; int body_count; } funcdef;
+        struct { ASTNode* condition; ASTNode** then_body; int then_body_count; ASTNode** else_body; int else_body_count; } if_stmt;
         ASTNode* expr;
     } data;
 };

@@ -1,3 +1,7 @@
-x = 4 - 5
-print "Sum is equal to ", x
-print "Sagnik is idiot"
+x = 2
+if x > 5:
+    print "hello"
+    print "hello"
+else:
+    print "world"
+end

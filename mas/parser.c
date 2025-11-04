@@ -56,7 +56,7 @@ ASTNode* parse_program() {
         statements[stmt_count++] = parse_statement();
 
         // After a statement, we must have a newline or EOF.
-        if (current_token->type != TOK_NEWLINE && current_token->type != TOK_EOF) {
+        if (current_token->type != TOK_EOF && current_token->type != TOK_EOF) {
             consume(TOK_NEWLINE, "Expected newline after statement");
         }
     }
@@ -169,30 +169,52 @@ ASTNode* parse_statement() {
         return each;
     }
     else if (match(KW_IF)) {
-        advance(); // consume 'if'
-        ASTNode* condition = parse_expression();
-        consume(TOK_COLON, "Expected ':'");
-        consume(TOK_NEWLINE, "Expected newline after if condition");
-        
-        int body_count = 0;
-        ASTNode** body = malloc(sizeof(ASTNode*) * 100);
+    advance(); // consume 'if'
+    ASTNode* condition = parse_expression();
+    consume(TOK_COLON, "Expected ':'");
+    consume(TOK_NEWLINE, "Expected newline after if condition");
+    
+    // Parse 'then' body (stop at 'else' or 'end')
+    int then_body_count = 0;
+    ASTNode** then_body = malloc(sizeof(ASTNode*) * 100);
+    while (current_token && current_token->type != TOK_END && current_token->type != KW_ELSE) {
+        if (current_token->type == TOK_NEWLINE) {
+            advance();
+            continue;
+        }
+        then_body[then_body_count++] = parse_statement();
+    }
+
+    // Parse optional 'else' block
+    ASTNode** else_body = NULL;
+    int else_body_count = 0;
+    if (match(KW_ELSE)) {
+        advance(); // consume 'else'
+        consume(TOK_COLON, "Expected ':' after else");
+        consume(TOK_NEWLINE, "Expected newline after else");
+
+        else_body = malloc(sizeof(ASTNode*) * 100);
         while (current_token && current_token->type != TOK_END) {
             if (current_token->type == TOK_NEWLINE) {
                 advance();
                 continue;
             }
-            body[body_count++] = parse_statement();
+            else_body[else_body_count++] = parse_statement();
         }
-        consume(TOK_END, "Expected 'end' to close if");
-        
-        ASTNode* if_stmt = malloc(sizeof(ASTNode));
-        if_stmt->type = AST_IF;
-        if_stmt->line = current_token->line;
-        if_stmt->data.loop.condition = condition;
-        if_stmt->data.loop.body = body;
-        if_stmt->data.loop.body_count = body_count;
-        return if_stmt;
     }
+
+    consume(TOK_END, "Expected 'end' to close if");
+
+    ASTNode* if_node = malloc(sizeof(ASTNode));
+    if_node->type = AST_IF;
+    if_node->line = condition->line;
+    if_node->data.if_stmt.condition = condition;
+    if_node->data.if_stmt.then_body = then_body;
+    if_node->data.if_stmt.then_body_count = then_body_count;
+    if_node->data.if_stmt.else_body = else_body;          // NULL if no else
+    if_node->data.if_stmt.else_body_count = else_body_count;
+    return if_node;
+}
     else if (match(KW_GIVE)) {
         advance(); // consume 'give'
         ASTNode* value = parse_expression();
@@ -599,12 +621,19 @@ void print_ast(ASTNode* node, int indent) {
             }
             break;
         case AST_IF:
-            printf("IF\n");
-            print_ast(node->data.loop.condition, indent + 1);
-            for (int i = 0; i < node->data.loop.body_count; i++) {
-                print_ast(node->data.loop.body[i], indent + 1);
-            }
-            break;
+    printf("IF\n");
+    print_ast(node->data.if_stmt.condition, indent + 1);
+    printf("%*sTHEN:\n", indent * 2, "");
+    for (int i = 0; i < node->data.if_stmt.then_body_count; i++) {
+        print_ast(node->data.if_stmt.then_body[i], indent + 1);
+    }
+    if (node->data.if_stmt.else_body) {
+        printf("%*sELSE:\n", indent * 2, "");
+        for (int i = 0; i < node->data.if_stmt.else_body_count; i++) {
+            print_ast(node->data.if_stmt.else_body[i], indent + 1);
+        }
+    }
+    break;
         case AST_LOOP:
             printf("LOOP\n");
             print_ast(node->data.loop.condition, indent + 1);
