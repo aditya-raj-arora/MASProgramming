@@ -32,11 +32,11 @@ jobs:
       with:
         name: mas-${{ runner.os }}
         path: |
-          maw/mas
-          maw/mas.exe
+          mas/mas
+          mas/mas.exe
         if-no-files-found: ignore  # OK if one is missing
 
     - name: Clean (optional)
-      working-directory: ./maw
+      working-directory: ./mas
       shell: bash
       run: make clean
