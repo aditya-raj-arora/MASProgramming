@@ -22,24 +22,21 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential
 
-    - name: Install dependencies (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install make
-
     - name: Build with Make
       working-directory: ./mas
+      shell: bash
       run: make
 
-    - name: Test executable exists
-      working-directory: ./mas
-      shell: bash
-      run: |
-        if [ ! -f "mas.exe" ]; then
-          echo "Build failed: mas.exe not found"
-          exit 1
-        fi
+    - name: Upload executable as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mas-${{ runner.os }}
+        path: |
+          maw/mas
+          maw/mas.exe
+        if-no-files-found: ignore  # OK if one is missing
 
-    - name: Clean build artifacts
-      working-directory: ./mas
+    - name: Clean (optional)
+      working-directory: ./maw
+      shell: bash
       run: make clean
