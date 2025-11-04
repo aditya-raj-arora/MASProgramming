@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
 
     //     if (type == TOK_EOF) break;
     // }while(1);
-    // printf("KW_IN = %d\n", KW_IN);
+      
     ASTNode* ast = parse_program();
     fclose(f);
     

@@ -48,6 +48,12 @@ end
 each i in 1 to 3:
     print "Count:", i
 end
+
+def add(a,b):
+    give a+b
+end
+
+print add(2,3)
 ```
 
 **Output:**
@@ -64,6 +70,7 @@ Fruit: cherry
 Count: 1
 Count: 2
 Count: 3
+5
 ```
 
 ---

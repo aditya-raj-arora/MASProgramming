@@ -69,56 +69,57 @@ ASTNode* parse_program() {
 // Parse statement
 ASTNode* parse_statement() {
     if (match(KW_DEF)) {
-        // Function definition
-        advance(); // consume 'def'
-        if (!match(TOK_ID)) {
-            fprintf(stderr, "Parse error at line %d: Expected function name\n", current_token->line);
-            exit(1);
-        }
-        char* func_name = strdup(current_token->value);
-        advance();
-        consume(TOK_LPAREN, "Expected '('");
-        
-        char** params = malloc(sizeof(char*) * 10);
-        int param_count = 0;
-        
-        if (!match(TOK_RPAREN)) {
-            do {
+    advance(); // consume 'def'
+    
+    if (!match(TOK_ID)) {
+        fprintf(stderr, "Parse error at line %d: Expected function name\n", current_token->line);
+        exit(1);
+    }
+    char* func_name = strdup(current_token->value);
+    advance(); // consume function name
+
+    consume(TOK_LPAREN, "Expected '('");
+    
+    char** params = malloc(sizeof(char*) * 10);
+    int param_count = 0;
+    
+    if (!match(TOK_RPAREN)) {
+        do {
             if (!match(TOK_ID)) {
                 fprintf(stderr, "Parse error at line %d: Expected parameter name\n", current_token->line);
                 exit(1);
             }
             params[param_count++] = strdup(current_token->value);
-            advance();
-        } while (match(TOK_COMMA));
-            consume(TOK_RPAREN, "Expected ')'");
-        }
-        
-        consume(TOK_COLON, "Expected ':'");
-        consume(TOK_NEWLINE, "Expected newline after function header");
-        
-        // Parse function body
-        int body_count = 0;
-        ASTNode** body = malloc(sizeof(ASTNode*) * 100);
-        while (current_token && current_token->type != TOK_END) {
-            if (current_token->type == TOK_NEWLINE) {
-                advance();
-                continue;
-            }
-            body[body_count++] = parse_statement();
-        }
-        consume(TOK_END, "Expected 'end' to close function");
-        
-        ASTNode* func = malloc(sizeof(ASTNode));
-        func->type = AST_FUNCDEF;
-        func->line = current_token->line;
-        func->data.funcdef.name = func_name;
-        func->data.funcdef.params = params;
-        func->data.funcdef.param_count = param_count;
-        func->data.funcdef.body = body;
-        func->data.funcdef.body_count = body_count;
-        return func;
+            advance(); // consume parameter name
+        } while (match(TOK_COMMA) && (advance(), 1)); // consume comma
     }
+    
+    consume(TOK_RPAREN, "Expected ')'");
+    consume(TOK_COLON, "Expected ':'");
+    consume(TOK_NEWLINE, "Expected newline after function header");
+    
+    // Parse function body
+    int body_count = 0;
+    ASTNode** body = malloc(sizeof(ASTNode*) * 100);
+    while (current_token && current_token->type != TOK_END) {
+        if (current_token->type == TOK_NEWLINE) {
+            advance();
+            continue;
+        }
+        body[body_count++] = parse_statement();
+    }
+    consume(TOK_END, "Expected 'end' to close function");
+    
+    ASTNode* func = malloc(sizeof(ASTNode));
+    func->type = AST_FUNCDEF;
+    func->line = current_token->line;
+    func->data.funcdef.name = func_name;
+    func->data.funcdef.params = params;
+    func->data.funcdef.param_count = param_count;
+    func->data.funcdef.body = body;
+    func->data.funcdef.body_count = body_count;
+    return func;
+}
     else if (match(KW_LOOP)) {
         advance(); // consume 'loop'
         ASTNode* condition = parse_expression();
