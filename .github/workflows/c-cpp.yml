@@ -33,6 +33,7 @@ jobs:
 
     - name: Test executable exists
       working-directory: ./mas
+      shell: bash
       run: |
         if [ ! -f "mas.exe" ]; then
           echo "Build failed: mas.exe not found"
