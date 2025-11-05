@@ -29,39 +29,88 @@
     static MASObject *create_null();
     static MASObject *create_list(MASObject **items, int count);
     void interpreter_add_function(Interpreter* interp, const char* name, ASTNode* func);
+    static void gc_add_object(MASObject* obj);
+    static MASObject* allocate_object(size_t size);
+    static MASObject *builtin_gc(Interpreter *interp, MASObject **args, int arg_count);
+    static void gc_collect(Interpreter* interp);
+    static void gc_sweep();
+    static void gc_mark_roots(Interpreter* interp);
+    static void gc_mark(MASObject* obj);
 
-    // Reference counting
-    void mas_object_incref(MASObject *obj)
-    {
-        if (obj)
-            obj->refcount++;
+
+    static MASObject** all_objects = NULL;
+    static int object_count = 0;
+    static int object_capacity = 0;
+
+    //Global Object list
+    static void gc_add_object(MASObject* obj) {
+        if (object_count >= object_capacity) {
+            object_capacity = object_capacity ? object_capacity * 2 : 16;
+            all_objects = realloc(all_objects, sizeof(MASObject*) * object_capacity);
+        }
+        all_objects[object_count++] = obj;
+        obj->marked = false;
     }
 
-    void mas_object_decref(MASObject *obj)
-    {
-        if (!obj)
-            return;
-        obj->refcount--;
-        if (obj->refcount <= 0)
-        {
-            // Free based on type
-            switch (obj->type)
-            {
-            case AST_STRING:
-                free(obj->data.string);
-                break;
-            case AST_LIST:
-                for (int i = 0; i < obj->data.list.count; i++)
-                {
-                    mas_object_decref(obj->data.list.items[i]);
-                }
-                free(obj->data.list.items);
-                break;
-            default:
-                break;
+    static MASObject* allocate_object(size_t size) {
+        MASObject* obj = malloc(size);
+        memset(obj, 0, size);
+        gc_add_object(obj);
+        return obj;
+    }
+
+    static void gc_mark(MASObject* obj) {
+        if (!obj || obj->marked) return;
+        obj->marked = true;
+
+    // Mark children
+        if (obj->type == AST_LIST) {
+            for (int i = 0; i < obj->data.list.count; i++) {
+                gc_mark(obj->data.list.items[i]);
             }
-            free(obj);
         }
+    }
+
+    static void gc_mark_roots(Interpreter* interp) {
+    // Mark globals
+        for (int i = 0; i < interp->globals->count; i++) {
+            gc_mark(interp->globals->values[i]);
+        }
+    // Mark locals
+        for (int i = 0; i < interp->locals->count; i++) {
+            gc_mark(interp->locals->values[i]);
+        }
+    }
+
+    static void gc_sweep() {
+        int collected = 0;
+        int write_index = 0;
+        for (int i = 0; i < object_count; i++) {
+            MASObject* obj = all_objects[i];
+            if (obj->marked) {
+                obj->marked = false; // reset for next cycle
+                all_objects[write_index++] = obj;
+            } else {
+            // Free the object
+                if (obj->type == AST_STRING) {
+                    free(obj->data.string);
+                } else if (obj->type == AST_LIST) {
+                    free(obj->data.list.items);
+                }
+                free(obj);
+                collected++;
+            }
+        }
+        object_count = write_index;
+        printf("[GC] Collected %d objects (remaining: %d)\n", collected, object_count);
+    }
+
+    static void gc_collect(Interpreter* interp) {
+    // Mark phase
+        gc_mark_roots(interp);
+    
+    // Sweep phase
+        gc_sweep();
     }
 
     // Symbol table operations
@@ -82,9 +131,7 @@
         {
             if (strcmp(table->names[i], name) == 0)
             {
-                mas_object_decref(table->values[i]);
                 table->values[i] = value;
-                mas_object_incref(value);
                 return;
             }
         }
@@ -99,7 +146,6 @@
 
         table->names[table->count] = strdup(name);
         table->values[table->count] = value;
-        mas_object_incref(value);
         table->count++;
     }
 
@@ -118,8 +164,7 @@
     // Object creation
     static MASObject *create_number(double value)
     {
-        MASObject *obj = malloc(sizeof(MASObject));
-        obj->refcount = 1;
+        MASObject *obj = allocate_object(sizeof(MASObject));
         obj->type = AST_NUMBER;
         obj->data.number = value;
         return obj;
@@ -127,8 +172,7 @@
 
     static MASObject *create_string(const char *value)
     {
-        MASObject *obj = malloc(sizeof(MASObject));
-        obj->refcount = 1;
+        MASObject *obj = allocate_object(sizeof(MASObject));
         obj->type = AST_STRING;
         obj->data.string = strdup(value);
         return obj;
@@ -136,8 +180,7 @@
 
     static MASObject *create_boolean(bool value)
     {
-        MASObject *obj = malloc(sizeof(MASObject));
-        obj->refcount = 1;
+        MASObject *obj = allocate_object(sizeof(MASObject));
         obj->type = AST_BOOLEAN;
         obj->data.boolean = value;
         return obj;
@@ -145,23 +188,20 @@
 
     static MASObject *create_null()
     {
-        MASObject *obj = malloc(sizeof(MASObject));
-        obj->refcount = 1;
+        MASObject *obj = allocate_object(sizeof(MASObject));
         obj->type = AST_NULL;
         return obj;
     }
 
     static MASObject *create_list(MASObject **items, int count)
     {
-        MASObject *obj = malloc(sizeof(MASObject));
-        obj->refcount = 1;
+        MASObject *obj = allocate_object(sizeof(MASObject));
         obj->type = AST_LIST;
         obj->data.list.count = count;
         obj->data.list.items = malloc(sizeof(MASObject *) * count);
         for (int i = 0; i < count; i++)
         {
             obj->data.list.items[i] = items[i];
-            mas_object_incref(items[i]);
         }
         return obj;
     }
@@ -276,6 +316,13 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
         return create_null();
     }
 
+    static MASObject *builtin_gc(Interpreter *interp, MASObject **args, int arg_count) {
+        (void)args; 
+        (void)arg_count;
+        gc_collect(interp);
+        return create_null();
+    }
+
     // Evaluation functions
     static MASObject *evaluate_binop(ASTNode *node, Interpreter *interp)
     {
@@ -289,73 +336,58 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
             exit(1);
         }
 
-        double result;
+        double lval = left->data.number;
+        double rval = right->data.number;
         if (strcmp(node->data.binop.op, "+") == 0)
         {
-            result = left->data.number + right->data.number;
+            return create_number(lval + rval);
         }
         else if (strcmp(node->data.binop.op, "-") == 0)
         {
-            result = left->data.number - right->data.number;
+            return create_number(lval - rval);
         }
         else if (strcmp(node->data.binop.op, "*") == 0)
         {
-            result = left->data.number * right->data.number;
+            return create_number(lval * rval);
         }
         else if (strcmp(node->data.binop.op, "/") == 0)
         {
-            if (right->data.number == 0)
+            if (rval == 0)
             {
                 fprintf(stderr, "Division by zero\n");
                 exit(1);
             }
-            result = left->data.number / right->data.number;
+            return create_number(lval / rval);
         }
         else if (strcmp(node->data.binop.op, "==") == 0)
         {
-            mas_object_decref(left);
-            mas_object_decref(right);
-            return create_boolean(left->data.number == right->data.number);
+            return create_boolean(lval == rval);
         }
         else if (strcmp(node->data.binop.op, "!=") == 0)
         {
-            mas_object_decref(left);
-            mas_object_decref(right);
-            return create_boolean(left->data.number != right->data.number);
+            return create_boolean(lval != rval);
         }
         else if (strcmp(node->data.binop.op, "<") == 0)
         {
-            mas_object_decref(left);
-            mas_object_decref(right);
-            return create_boolean(left->data.number < right->data.number);
+            return create_boolean(lval < rval);
         }
         else if (strcmp(node->data.binop.op, "<=") == 0)
         {
-            mas_object_decref(left);
-            mas_object_decref(right);
-            return create_boolean(left->data.number <= right->data.number);
+            return create_boolean(lval <= rval);
         }
         else if (strcmp(node->data.binop.op, ">") == 0)
         {
-            mas_object_decref(left);
-            mas_object_decref(right);
-            return create_boolean(left->data.number > right->data.number);
+            return create_boolean(lval > rval);
         }
         else if (strcmp(node->data.binop.op, ">=") == 0)
         {
-            mas_object_decref(left);
-            mas_object_decref(right);
-            return create_boolean(left->data.number >= right->data.number);
+            return create_boolean(lval >= rval);
         }
         else
         {
             fprintf(stderr, "Unknown operator: %s\n", node->data.binop.op);
             exit(1);
         }
-
-        mas_object_decref(left);
-        mas_object_decref(right);
-        return create_number(result);
     }
 
     static MASObject *evaluate(ASTNode *node, Interpreter *interp)
@@ -367,7 +399,6 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
             MASObject *last = create_null();
             for (int i = 0; i < node->data.list.count; i++)
             {
-                mas_object_decref(last);
                 last = evaluate(node->data.list.items[i], interp);
             }
             return last;
@@ -389,11 +420,8 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
             }
             if (!value)
             {
-                //fprintf(stderr, "Undefined variaaable: %s\n", node->data.var_name);
-                //exit(1);
                 return create_number(0.0);
             }
-            mas_object_incref(value);
             return value;
         }
         case AST_ASSIGN:
@@ -413,7 +441,6 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
                 exit(1);
             }
             MASObject *result = create_number(-operand->data.number);
-            mas_object_decref(operand);
             return result;
         }
         case AST_LIST:
@@ -435,9 +462,6 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
                 args[i] = evaluate(node->data.call.args[i], interp);
             }
             MASObject* result = builtin_print(interp, args, node->data.call.arg_count);
-            for (int i = 0; i < node->data.call.arg_count; i++) {
-                mas_object_decref(args[i]);
-            }
             free(args);
             return result;
         }
@@ -447,9 +471,6 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
                 args[i] = evaluate(node->data.call.args[i], interp);
             }
             MASObject* result = builtin_input(interp, args, node->data.call.arg_count);
-            for (int i = 0; i < node->data.call.arg_count; i++) {
-                mas_object_decref(args[i]);
-            }
             free(args);
             return result;
         }
@@ -459,11 +480,14 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
                 args[i] = evaluate(node->data.call.args[i], interp);
             }
             MASObject* result = builtin_input_num(interp, args, node->data.call.arg_count);
-            for (int i = 0; i < node->data.call.arg_count; i++) {
-                mas_object_decref(args[i]);
-            }
             free(args);
             return result;
+        }
+        else if (strcmp(node->data.call.name, "gc") == 0) {
+            for (int i = 0; i < node->data.call.arg_count; i++) {
+                MASObject* arg = evaluate(node->data.call.args[i], interp);
+            }
+            return builtin_gc(interp, NULL, 0);
         }
 
         // Look up user-defined function
@@ -511,31 +535,22 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
             
             // Handle 'give' (return)
             if (stmt->type == AST_RETURN) {
-                mas_object_decref(return_value);
                 return_value = result;
                 // has_returned = true;
                 break;
             }
-            
-            mas_object_decref(result);
         }
-
-        // Cleanup
-        for (int i = 0; i < node->data.call.arg_count; i++) {
-            mas_object_decref(arg_values[i]);
-        }
-        free(arg_values);
 
         SymbolTable* temp = interp->locals;
         interp->locals = old_locals;
         for (int i = 0; i < temp->count; i++) {
             free(temp->names[i]);          // free variable name (strdup'd)
-            mas_object_decref(temp->values[i]); // release object reference
         }
         free(temp->names);
         free(temp->values);
         free(temp);
 
+        free(arg_values);
         return return_value;
     }
     case AST_LOOP:
@@ -550,16 +565,13 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
                 }
                 if (!cond->data.boolean)
                 {
-                    mas_object_decref(cond);
                     break;
                 }
-                mas_object_decref(cond);
 
                 // Execute loop body
                 for (int i = 0; i < node->data.loop.body_count; i++)
                 {
-                    MASObject *result = evaluate(node->data.loop.body[i], interp);
-                    mas_object_decref(result);
+                    evaluate(node->data.loop.body[i], interp);
                 }
             }
             return create_null();
@@ -581,21 +593,16 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
                 int start = (int)start_val->data.number;
                 int end = (int)end_val->data.number;
 
-                mas_object_decref(start_val);
-                mas_object_decref(end_val);
-
                 // Loop from start to end (inclusive)
                 for (int i = start; i <= end; i++)
                 {
                     MASObject *num = create_number(i);
                     symbol_table_set(interp->locals, node->data.each.target, num);
-                    mas_object_decref(num);
 
                     // Execute body
                     for (int j = 0; j < node->data.each.body_count; j++)
                     {
-                        MASObject *result = evaluate(node->data.each.body[j], interp);
-                        mas_object_decref(result);
+                        evaluate(node->data.each.body[j], interp);
                     }
                 }
             }
@@ -615,12 +622,9 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
 
                     for (int j = 0; j < node->data.each.body_count; j++)
                     {
-                        MASObject *result = evaluate(node->data.each.body[j], interp);
-                        mas_object_decref(result);
+                        evaluate(node->data.each.body[j], interp);
                     }
                 }
-
-                mas_object_decref(iterable);
             }
             return create_null();
         }
@@ -638,8 +642,7 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
                 // Execute 'then' branch
                 for (int i = 0; i < node->data.if_stmt.then_body_count; i++)
                 {
-                    MASObject *result = evaluate(node->data.if_stmt.then_body[i], interp);
-                    mas_object_decref(result);
+                    evaluate(node->data.if_stmt.then_body[i], interp);
                 }
             }
             else if (node->data.if_stmt.else_body)
@@ -647,22 +650,20 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
                 // Execute 'else' branch (only if it exists)
                 for (int i = 0; i < node->data.if_stmt.else_body_count; i++)
                 {
-                    MASObject *result = evaluate(node->data.if_stmt.else_body[i], interp);
-                    mas_object_decref(result);
+                    evaluate(node->data.if_stmt.else_body[i], interp);
                 }
             }
 
-            mas_object_decref(cond);
             return create_null();
         }
         case AST_EXPRSTMT:
         {
-            MASObject *result = evaluate(node->data.expr, interp);
-            mas_object_decref(result);
+            evaluate(node->data.expr, interp);
             return create_null();
         }
         case AST_BREAK:
         case AST_CONTINUE:
+            return create_null();
         case AST_RETURN:
             return evaluate(node->data.expr, interp);
         case AST_FUNCDEF:

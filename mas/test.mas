@@ -40,3 +40,8 @@ print(name)
 print "Hello!", name, "and Welcome to MAS."
 number = input_num()
 print(number)
+
+# Garbage Collector verification(non-cyclic)
+x = [1, 2, 3, 4, 5]
+x = null
+gc()

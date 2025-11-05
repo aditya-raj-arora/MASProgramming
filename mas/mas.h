@@ -39,9 +39,10 @@ typedef struct ASTNode ASTNode;
 typedef struct MASObject MASObject;
 
 // MAS Object system (for GC foundation)
-struct MASObject {
+typedef struct MASObject {
     int refcount;
     ASTType type;
+    bool marked;
     union {
         double number;
         char* string;
@@ -56,7 +57,7 @@ struct MASObject {
             int arg_count;
         } call;
     } data;
-};
+}MASObject;
 
 // AST Node structure
 struct ASTNode {
@@ -92,8 +93,6 @@ void lexer_init(FILE* f);
 Token* lexer_next();
 ASTNode* parse_program();
 MASObject* interpret(ASTNode* ast);
-void mas_object_incref(MASObject* obj);
-void mas_object_decref(MASObject* obj);
 void print_ast(ASTNode* node, int indent);
 
 #endif

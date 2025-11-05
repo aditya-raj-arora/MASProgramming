@@ -62,8 +62,7 @@ int main(int argc, char* argv[]) {
     ASTNode* ast = parse_program();
     fclose(f);
     
-    MASObject* result = interpret(ast);
-    mas_object_decref(result);
+    interpret(ast);
     
     return 0;
 }
