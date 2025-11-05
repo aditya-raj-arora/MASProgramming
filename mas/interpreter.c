@@ -21,6 +21,7 @@
         } functions;
     } Interpreter;
 
+    static MASObject *builtin_input(Interpreter *interp, MASObject **args, int arg_count);
     static MASObject *evaluate(ASTNode *node, Interpreter *interp);
     static MASObject *create_number(double value);
     static MASObject *create_string(const char *value);
@@ -164,6 +165,61 @@
         }
         return obj;
     }
+
+    static MASObject *builtin_input(Interpreter *interp, MASObject **args, int arg_count)
+{
+    (void)interp;
+    if (arg_count > 0) {
+        // Optional prompt
+        MASObject *prompt = args[0];
+        if (prompt->type == AST_STRING) {
+            printf("%s", prompt->data.string);
+        }
+        fflush(stdout);
+    }
+
+    char buffer[1024];
+    if (!fgets(buffer, sizeof(buffer), stdin)) {
+        // EOF or error
+        return create_string("");
+    }
+
+    // Remove trailing newline if present
+    int len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n') {
+        buffer[len - 1] = '\0';
+    }
+
+    return create_string(buffer);
+}
+
+static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int arg_count)
+{
+    (void)interp;
+    if (arg_count > 0) {
+        MASObject *prompt = args[0];
+        if (prompt->type == AST_STRING) {
+            printf("%s", prompt->data.string);
+        }
+        fflush(stdout);
+    }
+
+    char buffer[1024];
+    if (!fgets(buffer, sizeof(buffer), stdin)) {
+        return create_number(0.0);
+    }
+
+    // Try to parse as number
+    char *end;
+    double val = strtod(buffer, &end);
+    if (end == buffer || (*end != '\0' && *end != '\n')) {
+        // Not a valid number
+        fprintf(stderr, "Warning: input is not a number, returning 0\n");
+        return create_number(0.0);
+    }
+
+    return create_number(val);
+}
 
     // Built-in functions
     static MASObject *builtin_print(Interpreter *interp, MASObject **args, int arg_count)
@@ -379,6 +435,30 @@
                 args[i] = evaluate(node->data.call.args[i], interp);
             }
             MASObject* result = builtin_print(interp, args, node->data.call.arg_count);
+            for (int i = 0; i < node->data.call.arg_count; i++) {
+                mas_object_decref(args[i]);
+            }
+            free(args);
+            return result;
+        }
+        else if (strcmp(node->data.call.name, "input") == 0) {
+            MASObject** args = malloc(sizeof(MASObject*) * node->data.call.arg_count);
+            for (int i = 0; i < node->data.call.arg_count; i++) {
+                args[i] = evaluate(node->data.call.args[i], interp);
+            }
+            MASObject* result = builtin_input(interp, args, node->data.call.arg_count);
+            for (int i = 0; i < node->data.call.arg_count; i++) {
+                mas_object_decref(args[i]);
+            }
+            free(args);
+            return result;
+        }
+        else if (strcmp(node->data.call.name, "input_num") == 0) {
+            MASObject** args = malloc(sizeof(MASObject*) * node->data.call.arg_count);
+            for (int i = 0; i < node->data.call.arg_count; i++) {
+                args[i] = evaluate(node->data.call.args[i], interp);
+            }
+            MASObject* result = builtin_input_num(interp, args, node->data.call.arg_count);
             for (int i = 0; i < node->data.call.arg_count; i++) {
                 mas_object_decref(args[i]);
             }

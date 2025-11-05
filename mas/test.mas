@@ -33,3 +33,10 @@ def add(a,b):
 end
 
 print add(2,3)
+
+# Input from user
+name = input()
+print(name)
+print "Hello!", name, "and Welcome to MAS."
+number = input_num()
+print(number)
