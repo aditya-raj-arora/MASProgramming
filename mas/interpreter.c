@@ -333,8 +333,9 @@
             }
             if (!value)
             {
-                fprintf(stderr, "Undefined variable: %s\n", node->data.var_name);
-                exit(1);
+                //fprintf(stderr, "Undefined variaaable: %s\n", node->data.var_name);
+                //exit(1);
+                return create_number(0.0);
             }
             mas_object_incref(value);
             return value;

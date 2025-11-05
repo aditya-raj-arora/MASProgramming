@@ -56,7 +56,10 @@ ASTNode* parse_program() {
         statements[stmt_count++] = parse_statement();
 
         // After a statement, we must have a newline or EOF.
-        if (current_token->type != TOK_EOF && current_token->type != TOK_EOF) {
+        if (current_token->type == TOK_EOF ) {
+            advance();
+        }
+        else if (current_token->type != TOK_EOF ) {
             consume(TOK_NEWLINE, "Expected newline after statement");
         }
     }
@@ -68,6 +71,7 @@ ASTNode* parse_program() {
 
 // Parse statement
 ASTNode* parse_statement() {
+    int start_line = current_token->line;
     if (match(KW_DEF)) {
     advance(); // consume 'def'
     
@@ -112,7 +116,7 @@ ASTNode* parse_statement() {
     
     ASTNode* func = malloc(sizeof(ASTNode));
     func->type = AST_FUNCDEF;
-    func->line = current_token->line;
+    func->line = start_line;
     func->data.funcdef.name = func_name;
     func->data.funcdef.params = params;
     func->data.funcdef.param_count = param_count;
@@ -121,6 +125,7 @@ ASTNode* parse_statement() {
     return func;
 }
     else if (match(KW_LOOP)) {
+        int loop_line = current_token->line;
         advance(); // consume 'loop'
         ASTNode* condition = parse_expression();
         consume(TOK_COLON, "Expected ':'");
@@ -139,14 +144,15 @@ ASTNode* parse_statement() {
         
         ASTNode* loop = malloc(sizeof(ASTNode));
         loop->type = AST_LOOP;
-        loop->line = current_token->line;
+        loop->line = loop_line;
         loop->data.loop.condition = condition;
         loop->data.loop.body = body;
         loop->data.loop.body_count = body_count;
         return loop;
     }
     else if (match(KW_EACH)) {
-    advance(); // consume 'each'
+        int each_line = current_token->line;
+        advance(); // consume 'each'
     
     if (!match(TOK_ID)) {
         fprintf(stderr, "Parse error at line %d: Expected variable name\n", current_token->line);
@@ -193,7 +199,7 @@ ASTNode* parse_statement() {
     
     ASTNode* each = malloc(sizeof(ASTNode));
     each->type = AST_EACH;
-    each->line = current_token->line;
+    each->line = each_line;
     each->data.each.target = target;
     each->data.each.iterable = iterable;      // NULL for ranges
     each->data.each.range_start = range_start; // NULL for iterables
@@ -203,6 +209,7 @@ ASTNode* parse_statement() {
     return each;
 }
 else if (match(KW_IF)) {
+    int if_line = current_token->line;
     advance(); // consume 'if'
     ASTNode* condition = parse_expression();
     consume(TOK_COLON, "Expected ':'");
@@ -241,7 +248,7 @@ else if (match(KW_IF)) {
 
     ASTNode* if_node = malloc(sizeof(ASTNode));
     if_node->type = AST_IF;
-    if_node->line = condition->line;
+    if_node->line = if_line;
     if_node->data.if_stmt.condition = condition;
     if_node->data.if_stmt.then_body = then_body;
     if_node->data.if_stmt.then_body_count = then_body_count;
@@ -250,29 +257,33 @@ else if (match(KW_IF)) {
     return if_node;
 }
     else if (match(KW_GIVE)) {
+        int give_line = current_token->line;
         advance(); // consume 'give'
         ASTNode* value = parse_expression();
         ASTNode* ret = malloc(sizeof(ASTNode));
         ret->type = AST_RETURN;
-        ret->line = current_token->line;
+        ret->line = give_line;
         ret->data.expr = value;
         return ret;
     }
     else if (match(KW_STOP)) {
+        int stop_line = current_token->line;
         advance(); // consume 'stop'
         ASTNode* brk = malloc(sizeof(ASTNode));
         brk->type = AST_BREAK;
-        brk->line = current_token->line;
+        brk->line = stop_line;
         return brk;
     }
     else if (match(KW_NEXT)) {
+        int next_line = current_token->line;
         advance(); // consume 'next'
         ASTNode* cont = malloc(sizeof(ASTNode));
         cont->type = AST_CONTINUE;
-        cont->line = current_token->line;
+        cont->line = next_line;
         return cont;
     }
     else if (match(KW_PRINT)) {
+        int print_line = current_token->line;
         advance(); // consume 'print'
         // Handle print as a function call expression
         ASTNode** args = malloc(sizeof(ASTNode*) * 10); // Allow multiple args
@@ -288,7 +299,7 @@ else if (match(KW_IF)) {
 
         ASTNode* call = malloc(sizeof(ASTNode));
         call->type = AST_CALL;
-        call->line = current_token ? current_token->line : -1;
+        call->line = current_token ? print_line : -1;
         call->data.call.name = strdup("print"); // The name of the built-in
         call->data.call.args = args;
         call->data.call.arg_count = arg_count;

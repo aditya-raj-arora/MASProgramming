@@ -2,9 +2,11 @@
 print "Hello, MAS!"
 
 # Variables and math
+z
 x = 10
 y = x * 2 + 5
 print "Result:", y
+print z
 
 # Lists
 fruits = ["apple", "banana", "cherry"]
