@@ -30,7 +30,7 @@ typedef struct {
 // AST Node types
 typedef enum {
     AST_PROGRAM, AST_ASSIGN, AST_BINOP, AST_UNARYOP, AST_NUMBER, AST_STRING,
-    AST_BOOLEAN, AST_NULL, AST_VAR, AST_LIST, AST_CALL, AST_IF, AST_LOOP,
+    AST_BOOLEAN, AST_NULL, AST_VAR, AST_LIST, AST_CALL, AST_IF, AST_LOOP, AST_INDEX,
     AST_EACH, AST_FUNCDEF, AST_RETURN, AST_BREAK, AST_CONTINUE, AST_EXPRSTMT
 } ASTType;
 
@@ -40,22 +40,16 @@ typedef struct MASObject MASObject;
 
 // MAS Object system (for GC foundation)
 typedef struct MASObject {
-    int refcount;
     ASTType type;
-    bool marked;
+    bool marked;              // for GC
     union {
         double number;
         char* string;
         bool boolean;
         struct {
-            MASObject** items;
+            struct MASObject** items;
             int count;
         } list;
-        struct {
-            char* name;
-            ASTNode** args;
-            int arg_count;
-        } call;
     } data;
 }MASObject;
 
@@ -64,7 +58,7 @@ struct ASTNode {
     ASTType type;
     int line;
     union {
-        struct { char* name; ASTNode* value; } assign;
+        struct { char* name; ASTNode* value; ASTNode* index; } assign;
         struct { ASTNode* left; char* op; ASTNode* right; } binop;
         struct { char* op; ASTNode* operand; } unaryop;
         double number;
@@ -75,13 +69,14 @@ struct ASTNode {
         struct { char* name; ASTNode** args; int arg_count; } call;
         struct { ASTNode* condition; ASTNode** body; int body_count; } loop;
         struct { 
-    char* target; 
-    ASTNode* iterable;      // for lists
-    ASTNode* range_start;   // for ranges (if not NULL)
-    ASTNode* range_end;     // for ranges
-    ASTNode** body; 
-    int body_count; 
-} each;
+            char* target; 
+            ASTNode* iterable;      // for lists
+            ASTNode* range_start;   // for ranges (if not NULL)
+            ASTNode* range_end;     // for ranges
+            ASTNode** body; 
+            int body_count; 
+        } each;
+        struct { char* target; ASTNode* index; } index;  // ← for AST_INDEX
         struct { char* name; char** params; int param_count; ASTNode** body; int body_count; } funcdef;
         struct { ASTNode* condition; ASTNode** then_body; int then_body_count; ASTNode** else_body; int else_body_count; } if_stmt;
         ASTNode* expr;

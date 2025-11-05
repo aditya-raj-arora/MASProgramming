@@ -332,7 +332,7 @@ ASTNode* parse_comparison() {
     // Check for assignment, which has the lowest precedence
     if (match(TOK_ASSIGN)) {
         advance(); // consume '='
-        if (expr->type != AST_VAR) {
+        if (expr->type != AST_VAR && expr->type != AST_INDEX) {
             fprintf(stderr, "Parse error at line %d: Invalid assignment target.\n", expr->line);
             exit(1);
         }
@@ -340,7 +340,13 @@ ASTNode* parse_comparison() {
         ASTNode* assign = malloc(sizeof(ASTNode));
         assign->type = AST_ASSIGN;
         assign->line = expr->line;
-        assign->data.assign.name = expr->data.var_name;
+        if (expr->type == AST_VAR) {
+            assign->data.assign.name = expr->data.var_name;
+            assign->data.assign.index = NULL; // no index
+        } else { // AST_INDEX
+            assign->data.assign.name = expr->data.index.target;
+            assign->data.assign.index = expr->data.index.index; // take ownership
+        }
         assign->data.assign.value = value;
         return assign;
     }
@@ -553,6 +559,20 @@ ASTNode* parse_primary() {
         int line = current_token->line;
         advance();
 
+        // Check for indexing: a[0]
+        if (match(TOK_LBRACKET)) {
+            advance(); // consume '['
+            ASTNode* index_expr = parse_expression();
+            consume(TOK_RBRACKET, "Expected ']'");
+
+            ASTNode* index_node = malloc(sizeof(ASTNode));
+            index_node->type = AST_INDEX;
+            index_node->line = line;
+            index_node->data.index.target = id_name;      // variable name
+            index_node->data.index.index = index_expr;    // index expression
+            return index_node;
+        }
+
         // Check if it's a function call
         if (match(TOK_LPAREN)) {
             advance(); // consume '('
@@ -696,6 +716,11 @@ void print_ast(ASTNode* node, int indent) {
         case AST_EXPRSTMT:
             printf("EXPRSTMT\n");
             print_ast(node->data.expr, indent + 1);
+            break;
+        case AST_INDEX:
+            printf("INDEX: %s[", node->data.index.target);
+            print_ast(node->data.index.index, 0); // print index expr inline
+            printf("]\n");
             break;
         default:
             printf("UNKNOWN AST NODE TYPE: %d\n", node->type);

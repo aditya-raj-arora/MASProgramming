@@ -427,7 +427,41 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
         case AST_ASSIGN:
         {
             MASObject *value = evaluate(node->data.assign.value, interp);
-            symbol_table_set(interp->locals, node->data.assign.name, value);
+
+            if (node->data.assign.index == NULL) {
+                // Plain variable assignment
+                symbol_table_set(interp->locals, node->data.assign.name, value);
+            } else {
+                // Indexed assignment: a[i] = value
+
+                // 1. Find the list variable
+                MASObject *list_obj = symbol_table_get(interp->locals, node->data.assign.name);
+                if (!list_obj) {
+                    list_obj = symbol_table_get(interp->globals, node->data.assign.name);
+                }
+                if (!list_obj || list_obj->type != AST_LIST) {
+                    fprintf(stderr, "Error: '%s' is not a list\n", node->data.assign.name);
+                    exit(1);
+                }
+
+                // 2. Evaluate index
+                MASObject *index_obj = evaluate(node->data.assign.index, interp);
+                if (index_obj->type != AST_NUMBER) {
+                    fprintf(stderr, "List index must be a number\n");
+                    exit(1);
+                }
+                int idx = (int)index_obj->data.number;
+
+                // 3. Bounds check
+                if (idx < 0 || idx >= list_obj->data.list.count) {
+                    fprintf(stderr, "Index %d out of bounds\n", idx);
+                    exit(1);
+                }
+
+                // 4. Assign (replace item)
+                // In pure GC, just overwrite — old item may become unreachable
+                list_obj->data.list.items[idx] = value;
+            }
             return value;
         }
         case AST_BINOP:
@@ -669,6 +703,36 @@ static MASObject *builtin_input_num(Interpreter *interp, MASObject **args, int a
         case AST_FUNCDEF:
             interpreter_add_function(interp, node->data.funcdef.name, node);
             return create_null();
+        case AST_INDEX:
+        {
+            // Look up the list variable
+            MASObject *list_obj = symbol_table_get(interp->locals, node->data.index.target);
+            if (!list_obj) {
+                list_obj = symbol_table_get(interp->globals, node->data.index.target);
+            }
+            if (!list_obj || list_obj->type != AST_LIST) {
+                fprintf(stderr, "Error: '%s' is not a list (line %d)\n", 
+                        node->data.index.target, node->line);
+                exit(1);
+            }
+
+            // Evaluate index expression
+            MASObject *index_obj = evaluate(node->data.index.index, interp);
+            if (index_obj->type != AST_NUMBER) {
+                fprintf(stderr, "List index must be a number (line %d)\n", node->line);
+                exit(1);
+            }
+            int idx = (int)index_obj->data.number;
+
+            // Bounds check
+            if (idx < 0 || idx >= list_obj->data.list.count) {
+                fprintf(stderr, "Index %d out of bounds (line %d)\n", idx, node->line);
+                exit(1);
+            }
+
+            // Return the item (no incref — GC handles it)
+            return list_obj->data.list.items[idx];
+        }
         default:
             fprintf(stderr, "Unknown AST node type: %d\n", node->type);
             exit(1);
