@@ -6,9 +6,24 @@ static int line = 1;
 static FILE* file;
 static bool eof_reached = false;
 
+ExecutionMode mode;
+
 void lexer_init(FILE* f) {
+    //Setting the lexer mode
+    mode = FILE_MODE;
     file = f;
     current = NULL;
+}
+
+void lexer_init_repl(char* code){
+    //Setting the lexer mode
+    mode = REPL_MODE;
+
+    int size = strlen(code);
+    char* buffer = malloc(size + 1);
+    strcpy(buffer, code);
+    buffer[size] = '\0';
+    current = buffer;
 }
 
 // Helper function to read next character
@@ -166,7 +181,7 @@ static Token* make_token(TokenType type, char* value, int line_num) {
 
 // Main lexer function
 Token* lexer_next() {
-    if (!current) {
+    if (!current && mode == FILE_MODE) {
         // Read entire file into memory
         fseek(file, 0, SEEK_END);
         long size = ftell(file);

@@ -2,8 +2,18 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
 
-# Target executable
-TARGET = mas.exe
+# Detect OS (Windows_NT is set on Windows)
+ifeq ($(OS),Windows_NT)
+    RM = del /Q
+    TARGET = mas.exe
+    SHELL := cmd.exe
+    PATHSEP = \\
+else
+    RM = rm -f
+    TARGET = mas
+    SHELL := /bin/sh
+    PATHSEP = /
+endif
 
 # Source files
 SRCS = lexer.c parser.c interpreter.c main.c
@@ -11,12 +21,12 @@ SRCS = lexer.c parser.c interpreter.c main.c
 # Default target
 all: $(TARGET)
 
-# Link object files into executable
+# Build target
 $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Clean generated files
+# Clean target
 clean:
-	del $(TARGET) 2> NUL || rm -f $(TARGET)
+	-$(RM) $(TARGET)
 
 .PHONY: all clean

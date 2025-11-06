@@ -2,67 +2,49 @@
 #include "mas.h"
 #include <stdio.h>
 
+
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <input.mas>\n", argv[0]);
+    if(argc >2){
+        fprintf(stderr, "Too many arguments provided\n");
         return 1;
     }
+    else if(argc == 1){
+        // REPL mode
+        printf("MAS Programming Language REPL \n");
+        printf("Type 'exit to quit\n");
 
-    FILE* f = fopen(argv[1], "rb");
-    if (!f) {
-        perror("Failed to open file");
-        return 1;
+        char input[REPL_INPUT_SIZE];
+
+        while(1){
+            printf("mas >>");
+            if(!(fgets(input, REPL_INPUT_SIZE, stdin))) continue;
+
+            // Check for exit command
+            if(strcmp(input, "exit\n") ==0){
+                printf("Exiting MAS REPL. Goodbye!\n");
+                break;
+            }
+
+            lexer_init_repl(input);
+            ASTNode* ast = parse_program();
+            interpret(ast);
+        }
     }
+    else{
+        //Execution from file
+         FILE* f = fopen(argv[1], "rb");
+        if (!f) {
+            perror("Failed to open file");
+            return 1;
+        }
 
-    lexer_init(f);
-
-
-    
-    // Token* tok;
-    // do {
-    //     tok = lexer_next();
-    //     switch (tok->type) {
-    //         case TOK_EOF:
-    //             printf("EOF\n");
-    //             break;
-    //         case TOK_ERROR:
-    //             printf("ERROR (line %d): %s\n", tok->line, tok->value);
-    //             break;
-    //         case TOK_NUMBER:
-    //             printf("NUMBER (line %d): %s\n", tok->line, tok->value);
-    //             break;
-    //         case TOK_STRING:
-    //             printf("STRING (line %d): \"%s\"\n", tok->line, tok->value);
-    //             break;
-    //         case TOK_ID:
-    //             printf("IDENTIFIER (line %d): %s\n", tok->line, tok->value);
-    //             break;
-    //         case TOK_NEWLINE:
-    //             printf("NEWLINE (line %d)\n", tok->line);
-    //             break;
-    //         case TOK_PLUS:     printf("PLUS (line %d)\n", tok->line); break;
-    //         case TOK_ASSIGN:   printf("ASSIGN '=' (line %d)\n", tok->line); break;
-    //         case TOK_EQ:       printf("EQ '==' (line %d)\n", tok->line); break;
-    //         // ... add more as needed, or use a helper function ...
-    //         default:
-    //             // For brevity, just print type and value
-    //             printf("TOKEN %d (line %d): %s\n", tok->type, tok->line, tok->value ? tok->value : "");
-    //             break;
-    //     }
-
-    //     TokenType type = tok->type;
-
-    //     // Clean up
-    //     if (tok->value) free(tok->value);
-    //     free(tok);
-
-    //     if (type == TOK_EOF) break;
-    // }while(1);
-      
-    ASTNode* ast = parse_program();
-    fclose(f);
-    
-    interpret(ast);
+        lexer_init(f);
+        
+        ASTNode* ast = parse_program();
+        fclose(f);
+        
+        interpret(ast);
+    }
     
     return 0;
 }

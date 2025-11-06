@@ -8,6 +8,9 @@
 #include <string.h>
 #include <stdbool.h>
 
+//Declaration for REPL mode size
+#define REPL_INPUT_SIZE 1024
+
 // Token types
 typedef enum {
     TOK_ID, TOK_NUMBER, TOK_STRING, TOK_PLUS, TOK_MINUS, TOK_TIMES, TOK_DIVIDE,
@@ -83,8 +86,17 @@ struct ASTNode {
     } data;
 };
 
+//Execution mode
+typedef enum {
+    FILE_MODE,
+    REPL_MODE
+} ExecutionMode;
+
+extern ExecutionMode mode;
+
 // Function declarations
 void lexer_init(FILE* f);
+void lexer_init_repl(char* code);
 Token* lexer_next();
 ASTNode* parse_program();
 MASObject* interpret(ASTNode* ast);

@@ -21,8 +21,8 @@ static bool match(TokenType type) {
 
 static void consume(TokenType type, const char* message) {
     if (!match(type)) {
-        fprintf(stderr, "Parse error at line %d: %s\n", 
-                current_token ? current_token->line : -1, message);
+        if (mode == FILE_MODE) (stderr, "Parse error at line %d: ", current_token ? current_token->line : -1);
+        fprintf(stderr, "%s\n", message);
         exit(1);
     }
     advance();
@@ -76,7 +76,8 @@ ASTNode* parse_statement() {
     advance(); // consume 'def'
     
     if (!match(TOK_ID)) {
-        fprintf(stderr, "Parse error at line %d: Expected function name\n", current_token->line);
+        if (mode == FILE_MODE) fprintf(stderr, "Parse error at line %d: ",current_token->line);
+        fprintf(stderr, "Expected function name\n");
         exit(1);
     }
     char* func_name = strdup(current_token->value);
@@ -90,7 +91,8 @@ ASTNode* parse_statement() {
     if (!match(TOK_RPAREN)) {
         do {
             if (!match(TOK_ID)) {
-                fprintf(stderr, "Parse error at line %d: Expected parameter name\n", current_token->line);
+                if (mode == FILE_MODE) fprintf(stderr, "Parse error at line %d: ",current_token->line);
+                fprintf(stderr,"Expected parameter name\n");
                 exit(1);
             }
             params[param_count++] = strdup(current_token->value);
@@ -155,7 +157,8 @@ ASTNode* parse_statement() {
         advance(); // consume 'each'
     
     if (!match(TOK_ID)) {
-        fprintf(stderr, "Parse error at line %d: Expected variable name\n", current_token->line);
+        if (mode == FILE_MODE) fprintf(stderr, "Parse error at line %d: ",current_token->line);
+        fprintf(stderr, "Expected variable name\n");
         exit(1);
     }
     char* target = strdup(current_token->value);
@@ -333,7 +336,8 @@ ASTNode* parse_comparison() {
     if (match(TOK_ASSIGN)) {
         advance(); // consume '='
         if (expr->type != AST_VAR && expr->type != AST_INDEX) {
-            fprintf(stderr, "Parse error at line %d: Invalid assignment target.\n", expr->line);
+            if (mode == FILE_MODE) fprintf(stderr, "Parse error at line %d: ",current_token->line);
+            fprintf(stderr, "Invalid assignment target.\n");
             exit(1);
         }
         ASTNode* value = parse_expression();
@@ -627,8 +631,8 @@ ASTNode* parse_primary() {
         return expr;
     }
     
-    fprintf(stderr, "Parse error at line %d: Unexpected token\n", 
-            current_token ? current_token->line : -1);
+    if (mode == FILE_MODE) fprintf(stderr, "Parse error at line %d: ", current_token ? current_token->line : -1);
+    fprintf(stderr, "Unexpected token\n");
     exit(1);
 }
 
