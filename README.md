@@ -103,6 +103,13 @@ make
 
 ---
 
+### REPL mode
+```bash
+./mas
+```
+
+>write exit to quit repl mode
+
 ## 📁 Project Structure
 
 ```
